@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Accounts — Cross-Sell Detector</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="topbar">
+    <h1>All Accounts</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('help-modal').showModal()">? Guide</button>
+      <a href="/" class="btn btn-primary">← Dashboard</a>
+    </div>
+  </div>
+
+  <dialog id="help-modal">
+    <div style="padding:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin:0;font-size:18px;font-weight:600">Column Guide</h2>
+        <button onclick="document.getElementById('help-modal').close()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer">✕</button>
+      </div>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand);white-space:nowrap">User ID</td><td style="padding:0.4rem 0">Internal Telnyx user identifier</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Connections</td><td style="padding:0.4rem 0">SIP connections configured</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Voice CDR</td><td style="padding:0.4rem 0">Voice calls in last 30 days. "+" = capped at 10,000</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">CC CDR</td><td style="padding:0.4rem 0">Call Control API calls in last 30 days</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Products</td><td style="padding:0.4rem 0">Telnyx products currently in use</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Score</td><td style="padding:0.4rem 0">Σ(confidence × strength) for all signals</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Tier</td><td style="padding:0.4rem 0">Hot ≥1.5 · Warm ≥0.7 · Cool &lt;0.7</td></tr>
+      </table>
+    </div>
+  </dialog>
+
+  <div class="filter-bar">
+    <input type="text" id="search" placeholder="Search accounts…" oninput="filterTable()">
+    <select id="tier-filter" onchange="filterTable()">
+      <option value="">All Tiers</option>
+      <option value="hot">🔥 Hot</option>
+      <option value="warm">🌤 Warm</option>
+      <option value="cool">❄ Cool</option>
+      <option value="dormant">💤 Dormant</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <div class="table-wrap">
+      <table id="accounts-table">
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>User ID</th>
+            <th>Connections</th>
+            <th>Voice CDR</th>
+            <th>CC CDR</th>
+            <th>Products</th>
+            <th>Score</th>
+            <th>Tier</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for acct in accounts %}
+          <tr data-tier="{{ acct.opportunity_tier }}" data-name="{{ acct.business_name | lower }} {{ acct.email | lower }}">
+            <td><a href="/account/{{ acct.user_id }}">{{ acct.business_name }}</a></td>
+            <td class="mono" style="font-size:12px">{{ acct.user_id[:12] }}…</td>
+            <td class="mono">{{ acct.connections_count }}</td>
+            <td class="mono">{{ acct.cdr_voice_30d }}</td>
+            <td class="mono">{{ acct.cdr_callcontrol_30d }}</td>
+            <td>
+              {% for p in acct.products %}
+              <span class="product-badge" style="margin:1px">{{ p }}</span>
+              {% endfor %}
+            </td>
+            <td class="mono">{{ acct.opportunity_score }}</td>
+            <td><span class="tier tier-{{ acct.opportunity_tier }}">{{ acct.opportunity_tier | capitalize }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">Bot Week 2026 — Telnyx Cross-Sell Signal Detector</div>
+
+  <script>
+  function filterTable() {
+    const q = document.getElementById('search').value.toLowerCase();
+    const tier = document.getElementById('tier-filter').value;
+    document.querySelectorAll('#accounts-table tbody tr').forEach(row => {
+      const name = row.dataset.name || '';
+      const t = row.dataset.tier || '';
+      const matchQ = !q || name.includes(q);
+      const matchT = !tier || t === tier;
+      row.style.display = (matchQ && matchT) ? '' : 'none';
+    });
+  }
+  </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ account.business_name }} — Cross-Sell Detector</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <h1>{{ account.business_name }}</h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('help-modal').showModal()">? Guide</button>
+      <a href="/" class="btn btn-primary">← Dashboard</a>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <dialog id="help-modal">
+    <div style="padding:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin:0;font-size:18px;font-weight:600">Field Guide</h2>
+        <button onclick="document.getElementById('help-modal').close()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer">✕</button>
+      </div>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand);white-space:nowrap">Confidence</td><td style="padding:0.4rem 0">How strongly usage data supports this signal (0–1)</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Strength</td><td style="padding:0.4rem 0">Business impact if this signal converts (0–1)</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Category</td><td style="padding:0.4rem 0">Signal type — usage_pattern, feature_gap, quality, compliance</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Score</td><td style="padding:0.4rem 0">Σ(confidence × strength) across all signals</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Tier</td><td style="padding:0.4rem 0">Hot ≥1.5 · Warm ≥0.7 · Cool &lt;0.7</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Effort</td><td style="padding:0.4rem 0">Low = one API call · Medium = small integration · High = architecture change</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Priority</td><td style="padding:0.4rem 0">High = act this sprint · Medium = this quarter · Low = backlog</td></tr>
+      </table>
+    </div>
+  </dialog>
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <a href="/">Dashboard</a><span>›</span><a href="/accounts">Accounts</a><span>›</span>{{ account.business_name }}
+  </div>
+
+  <!-- Account Profile -->
+  <div class="section">
+    <div class="profile-grid">
+      <div class="profile-field"><span class="profile-label">Account</span>{{ account.business_name }}</div>
+      <div class="profile-field"><span class="profile-label">Email</span>{{ account.email }}</div>
+      <div class="profile-field"><span class="profile-label">User ID</span><span class="mono" style="font-size:12px">{{ account.user_id }}</span></div>
+      <div class="profile-field"><span class="profile-label">Country</span>{{ account.country }}</div>
+      <div class="profile-field"><span class="profile-label">KYC</span>{% if account.kyc_status == 'accepted' %}<span class="kyc-good">✓ {{ account.kyc_status }}</span>{% else %}<span class="kyc-bad">✗ {{ account.kyc_status }}</span>{% endif %}</div>
+      <div class="profile-field"><span class="profile-label">Opportunity</span><span class="tier tier-{{ account.opportunity_tier }}">{{ account.opportunity_tier | capitalize }}</span> <span class="mono">{{ account.opportunity_score }}</span></div>
+      <div class="profile-field"><span class="profile-label">Use Case</span>{{ account.primary_use_case }}</div>
+      <div class="profile-field"><span class="profile-label">Created</span>{{ account.created_at | fmt_date }}</div>
+    </div>
+  </div>
+
+  <!-- Product Usage -->
+  <div class="section">
+    <div class="section-title">Product Usage</div>
+    <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+      <div class="stat-card compact">
+        <div class="label">Connections</div>
+        <div class="value" style="font-size:1.25rem">{{ account.connections_count }}</div>
+      </div>
+      <div class="stat-card compact">
+        <div class="label">Voice CDR (30d)</div>
+        <div class="value" style="font-size:1.25rem">{{ account.cdr_voice_30d }}</div>
+      </div>
+      <div class="stat-card compact">
+        <div class="label">CC API Calls (30d)</div>
+        <div class="value" style="font-size:1.25rem">{{ account.cdr_callcontrol_30d }}</div>
+      </div>
+      <div class="stat-card compact">
+        <div class="label">Est. Rev/mo</div>
+        <div class="value" style="font-size:1.25rem;color:var(--brand)">{{ account.est_revenue_monthly | fmt_money }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Asset Summary -->
+  <div class="section">
+    <div class="section-title">Asset Summary</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">Inventory</div>
+        <div class="asset-row"><span class="asset-type">Phone Numbers</span><span class="asset-count">{{ account.numbers_count }}</span></div>
+        <div class="asset-row"><span class="asset-type">SIP Connections</span><span class="asset-count">{{ account.connections_count }}</span></div>
+        {% for ctype, ccount in account.connections_by_type.items() %}
+        <div class="asset-row"><span class="asset-type">{{ conn_type_names.get(ctype, ctype) }}</span><span class="asset-count">{{ ccount }}</span></div>
+        {% endfor %}
+      </div>
+      <div class="card">
+        <div class="card-header">30-Day Activity</div>
+        <div class="asset-row"><span class="asset-type">Voice Calls</span><span class="asset-count">{{ account.cdr_voice_30d }}</span></div>
+        <div class="asset-row"><span class="asset-type">Call Control API</span><span class="asset-count">{{ account.cdr_callcontrol_30d }}</span></div>
+        <div class="asset-row"><span class="asset-type">Active Signals</span><span class="asset-count" style="color:var(--brand)">{{ account.signal_count }}</span></div>
+        <div class="asset-row"><span class="asset-type">Recommendations</span><span class="asset-count" style="color:var(--warning)">{{ account.rec_count }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detected Signals -->
+  <div class="section">
+    <div class="section-title">Detected Signals ({{ signals | length }})</div>
+    {% if signals %}
+    {% for sig in signals %}
+    <div class="card signal-card">
+      <div class="signal-header">
+        <div>
+          <span class="signal-name">{{ sig.name }}</span>
+          <span class="category-badge">{{ sig.category }}</span>
+        </div>
+        <span class="tier tier-{{ sig.strength_label if sig.strength_label else ('hot' if sig.strength >= 0.7 else 'cool') }}">{{ (sig.strength_label if sig.strength_label else ('high' if sig.strength >= 0.7 else 'low')) | capitalize }}</span>
+      </div>
+      <div class="signal-desc">{{ sig.description }}</div>
+      <div class="signal-metrics">
+        <div class="metric">
+          <span class="metric-label">Confidence</span>
+          <div class="conf-bar-track"><div class="conf-bar-fill" style="width:{{ (sig.confidence * 100)|int }}%"></div></div>
+          <span class="metric-value">{{ (sig.confidence * 100)|round(0)|int }}%</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Strength</span>
+          <div class="conf-bar-track"><div class="conf-bar-fill" style="width:{{ (sig.strength * 100)|int }}%"></div></div>
+          <span class="metric-value">{{ (sig.strength * 100)|round(0)|int }}%</span>
+        </div>
+      </div>
+      {% if sig.evidence %}
+      <div class="evidence-box">
+        <div class="evidence-label">Evidence</div>
+        <div class="evidence-text">{{ sig.evidence }}</div>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card" style="color:var(--text-secondary);text-align:center;padding:2rem">No signals detected for this account.</div>
+    {% endif %}
+  </div>
+
+  <!-- Cross-Sell Recommendations -->
+  <div class="section">
+    <div class="section-title">Cross-Sell Recommendations ({{ recommendations | length }})</div>
+    {% if recommendations %}
+    {% for rec in recommendations %}
+    <div class="card rec-card">
+      <div class="rec-header">
+        <div class="rec-title">{{ rec.product_name }}</div>
+        <div class="rec-badges">
+          {% if rec.effort %}<span class="effort-badge effort-{{ rec.effort }}">{{ rec.effort | capitalize }} Effort</span>{% endif %}
+          {% if rec.priority %}<span class="priority-badge">P{{ rec.priority }}</span>{% endif %}
+        </div>
+      </div>
+      <div class="rec-feature">{{ rec.feature_description }}</div>
+      {% if rec.confidence %}
+      <div class="rec-confidence">
+        <span style="font-size:12px;color:var(--text-secondary);font-family:var(--font-alt);font-weight:600">Confidence</span>
+        <div class="conf-bar-track"><div class="conf-bar-fill" style="width:{{ (rec.confidence * 100)|int }}%"></div></div>
+        <span class="mono" style="font-size:13px">{{ (rec.confidence * 100)|round(0)|int }}%</span>
+      </div>
+      {% endif %}
+
+      <!-- Value Proposition -->
+      {% set ev = rec.estimated_value_parsed %}
+      {% if ev %}
+      <div class="rec-section">
+        <div class="rec-section-label">Value Proposition</div>
+        <div class="value-grid">
+          {% if ev.telnyx_revenue_monthly %}
+          <div class="value-item">
+            <span class="value-label">Est. Rev/mo</span>
+            <span class="value-amount">{{ ev.telnyx_revenue_monthly | fmt_money }}</span>
+          </div>
+          {% endif %}
+          {% if ev.revenue_impact_pct %}
+          <div class="value-item">
+            <span class="value-label">Rev Impact</span>
+            <span class="value-amount">+{{ (ev.revenue_impact_pct * 100)|round(0)|int }}%</span>
+          </div>
+          {% endif %}
+          {% if ev.customer_savings_monthly %}
+          <div class="value-item">
+            <span class="value-label">Customer Saves</span>
+            <span class="value-amount">{{ ev.customer_savings_monthly | fmt_money }}/mo</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Revenue estimate from est_revenue_monthly fallback -->
+      {% if not ev and rec.estimated_revenue_monthly %}
+      <div class="rec-section">
+        <div class="rec-section-label">Value Proposition</div>
+        <div class="value-grid">
+          <div class="value-item">
+            <span class="value-label">Est. Rev/mo</span>
+            <span class="value-amount">{{ rec.estimated_revenue_monthly | fmt_money }}</span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Evidence -->
+      {% if rec.evidence %}
+      <div class="rec-section">
+        <div class="rec-section-label">Supporting Evidence</div>
+        <ul class="evidence" style="padding-left:1.25rem;margin:0">
+        {% for e in rec.evidence %}
+          <li>{{ e }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Next Steps -->
+      {% if rec.next_steps %}
+      <div class="rec-section">
+        <div class="rec-section-label">Next Steps</div>
+        <ol class="steps" style="padding-left:1.25rem;margin:0">
+        {% for s in rec.next_steps %}
+          <li>{{ s }}</li>
+        {% endfor %}
+        </ol>
+      </div>
+      {% endif %}
+
+      <!-- Demo Highlight -->
+      {% if rec.demo_highlight %}
+      <div class="demo-highlight">🎯 {{ rec.demo_highlight }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card" style="color:var(--text-secondary);text-align:center;padding:2rem">No recommendations for this account.</div>
+    {% endif %}
+  </div>
+
+  <div class="footer">Bot Week 2026 — Telnyx Cross-Sell Signal Detector</div>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Cross-Sell Signal Detector</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <!-- Top Bar -->
+  <div class="topbar">
+    <h1>Cross-Sell Signal Detector <span class="badge">Bot Week</span></h1>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('help-modal').showModal()">? Guide</button>
+      <a href="/refresh" class="btn btn-outline">↻ Refresh</a>
+      <a href="/accounts" class="btn btn-primary">All Accounts</a>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <dialog id="help-modal">
+    <div style="padding:1.5rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <h2 style="margin:0;font-size:18px;font-weight:600">Column Guide</h2>
+        <button onclick="document.getElementById('help-modal').close()" style="background:none;border:none;color:var(--text-secondary);font-size:1.3rem;cursor:pointer">✕</button>
+      </div>
+      <table style="width:100%;font-size:14px;border-collapse:collapse">
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand);white-space:nowrap">Connections</td><td style="padding:0.4rem 0">SIP connections configured (IP Auth, Call Control, TeXML, WebRTC)</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Voice CDR</td><td style="padding:0.4rem 0">Voice calls in last 30 days. "+" means capped at 10,000</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Signals</td><td style="padding:0.4rem 0">Usage patterns suggesting the customer would benefit from another product</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Score</td><td style="padding:0.4rem 0">Σ(confidence × strength) — higher = more likely to convert</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Tier</td><td style="padding:0.4rem 0">Hot ≥1.5 · Warm ≥0.7 · Cool &lt;0.7</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Top Target</td><td style="padding:0.4rem 0">Product this account is most likely to adopt next</td></tr>
+        <tr><td style="padding:0.4rem 0;font-weight:600;color:var(--brand)">Est. Rev/mo</td><td style="padding:0.4rem 0">Estimated additional monthly revenue if cross-sell converts</td></tr>
+      </table>
+    </div>
+  </dialog>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="label">Accounts Scanned</div>
+      <div class="value">{{ data.active_accounts }} <span style="font-size:0.6em;color:var(--text-secondary)">/ {{ data.total_accounts }}</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Signals Detected</div>
+      <div class="value" style="color:var(--brand)">{{ data.total_signals }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">🔥 Hot Opportunities</div>
+      <div class="value" style="color:var(--error)">{{ data.hot_count }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Est. Monthly Revenue</div>
+      <div class="value">{{ data.total_est_revenue | fmt_money }}</div>
+    </div>
+  </div>
+
+  <!-- Tier Breakdown -->
+  <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat-card compact">
+      <div class="label">🔥 Hot</div>
+      <div class="value" style="color:var(--error);font-size:1.25rem">{{ data.hot_count }}</div>
+    </div>
+    <div class="stat-card compact">
+      <div class="label">🌤 Warm</div>
+      <div class="value" style="color:var(--warning);font-size:1.25rem">{{ data.warm_count }}</div>
+    </div>
+    <div class="stat-card compact">
+      <div class="label">❄ Cool</div>
+      <div class="value" style="color:var(--info);font-size:1.25rem">{{ data.cool_count }}</div>
+    </div>
+    <div class="stat-card compact">
+      <div class="label">💤 Dormant</div>
+      <div class="value" style="color:var(--text-secondary);font-size:1.25rem">{{ data.dormant_count }}</div>
+    </div>
+  </div>
+
+  <!-- Top Opportunities -->
+  <div class="section">
+    <div class="section-title">Top Cross-Sell Opportunities</div>
+    {% if top_accounts %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Account</th>
+            <th>Connections</th>
+            <th>Voice CDR</th>
+            <th>Signals</th>
+            <th>Score</th>
+            <th>Top Target</th>
+            <th>Est. Rev/mo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for acct in top_accounts %}
+          <tr>
+            <td class="mono">{{ loop.index }}</td>
+            <td>
+              <a href="/account/{{ acct.user_id }}">{{ acct.business_name }}</a>
+              <div class="mono" style="color:var(--text-secondary);font-size:12px">{{ acct.email }}</div>
+            </td>
+            <td class="mono">{{ acct.connections_count }}</td>
+            <td class="mono">{{ acct.cdr_voice_30d }}</td>
+            <td class="mono">{{ acct.signal_count }}</td>
+            <td><span class="tier tier-{{ acct.opportunity_tier }}">{{ acct.opportunity_score }}</span></td>
+            <td>{% if acct.top_cross_sell_target %}<span class="product-badge">{{ acct.top_cross_sell_target }}</span>{% else %}—{% endif %}</td>
+            <td class="mono">{{ acct.est_revenue_monthly | fmt_money }}</td>
+            <td><a href="/account/{{ acct.user_id }}">View →</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card" style="text-align:center;color:var(--text-secondary);padding:3rem">
+      No active accounts found. Run <code>python run_demo.py</code> to generate data, then <a href="/refresh">refresh</a>.
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Signal Distribution -->
+  <div class="section">
+    <div class="section-title">Signal Distribution</div>
+    {% if signal_distribution %}
+    <div class="card">
+      {% for sig in signal_distribution %}
+      <div class="dist-row">
+        <div class="dist-label" title="{{ sig.id }}">{{ sig.name }}</div>
+        <div class="dist-bar-track">
+          <div class="dist-bar-fill" style="width:{{ (sig.count / max_sig_count * 100)|int }}%"></div>
+        </div>
+        <div class="dist-count">{{ sig.count }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card" style="color:var(--text-secondary);text-align:center;padding:2rem">No signals detected.</div>
+    {% endif %}
+  </div>
+
+  <!-- Recommendation Summary -->
+  <div class="section">
+    <div class="section-title">Recommendation Summary</div>
+    {% if rec_summary %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Target Product</th>
+            <th>Accounts</th>
+            <th>Avg Confidence</th>
+            <th>Est. Revenue/mo</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for rec in rec_summary %}
+          <tr>
+            <td><span class="product-badge">{{ rec.product }}</span></td>
+            <td class="mono">{{ rec.count }}</td>
+            <td class="mono">{{ (rec.avg_confidence * 100)|round(0)|int }}%</td>
+            <td class="mono">{{ rec.total_revenue | fmt_money }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="card" style="color:var(--text-secondary);text-align:center;padding:2rem">No recommendations generated.</div>
+    {% endif %}
+  </div>
+
+  <div class="footer">Bot Week 2026 — Telnyx Cross-Sell Signal Detector</div>
+</body>
+</html>

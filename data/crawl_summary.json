@@ -1,0 +1,220 @@
+{
+  "timestamp": "2026-06-08T22:08:22.685977+00:00",
+  "total_with_signals": 42,
+  "hot": 42,
+  "warm": 0,
+  "cool": 0,
+  "voice_only": 42,
+  "messaging_only": 0,
+  "voice_and_messaging": 0,
+  "ai_users": 0,
+  "cross_sell_targets": {
+    "AI Voice Assistant": 42,
+    "AI Call Routing": 42,
+    "AI Verification": 42,
+    "AI Transcription & Analysis": 6,
+    "AI-Powered IVR": 6
+  },
+  "top_20": [
+    {
+      "user_id": "35444a03-0925-49fe-b475-a4e13c5c75f1",
+      "email": "01cindyespinosa@gmail.com",
+      "score": 5.975,
+      "signals": 9,
+      "recs": 5,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "84f10d11-7420-4739-8398-0b0ad709d8c6",
+      "email": "0xcybin@gmail.com",
+      "score": 5.845,
+      "signals": 9,
+      "recs": 5,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "b696fc4d-d371-4985-9521-65d846170011",
+      "email": "082011jg@gmail.com",
+      "score": 5.845,
+      "signals": 9,
+      "recs": 5,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "ee17369a-393d-46f5-859b-2d3d053bce8a",
+      "email": "007agey@gmail.com",
+      "score": 5.845,
+      "signals": 9,
+      "recs": 5,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "4320a6b3-cda9-4a9e-b01b-5fa8e1945e5d",
+      "email": "10049685@fitnessintl.com",
+      "score": 5.407,
+      "signals": 8,
+      "recs": 5,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "669ec67c-ba32-4e8f-8159-5f46f8715e02",
+      "email": "05maximilianben@gmail.com",
+      "score": 2.88,
+      "signals": 4,
+      "recs": 5,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "0a2de9dc-f718-4ff8-89cb-29845ed1bc52",
+      "email": "1007405@pdsb.net",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "007daaf0-7690-40de-82f0-eebfcd2f1b76",
+      "email": "0b2w70qha@flinstop.co",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "a2eb35ee-30e2-418a-b49b-7c4e75bae9f9",
+      "email": "05gang2@gmail.com",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "ea7064cc-7fc7-4177-93b7-88764adf9a84",
+      "email": "0c9ac36f-030f-4384-8b29-d396c33eb118@4privacy.io",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "b0b94efc-002a-4c7d-9ca3-01ef08eb0a67",
+      "email": "010rasel@karkonoszedlakazdego.com",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "35692b56-3d33-4c0e-b4ef-5c064947038a",
+      "email": "1007@dtmail.ru",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "f8a65b40-f8ee-4f77-a8e2-cd3be3f5416d",
+      "email": "0@s5.ae",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "8d7a4694-ced4-498f-890f-226e7ef73202",
+      "email": "0x8.deb@gmail.com",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "95295b52-cb26-4ef5-8e1d-59aab2ad0adb",
+      "email": "010.miguel.lopez@gmail.com",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "adc924b5-747e-4995-bf28-fa1af6edcbae",
+      "email": "0xchronosfi@gmail.com",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "e910fca6-8e41-4288-a6ad-a72d9c323244",
+      "email": "073483463@student.dpcdsb.org",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "8ff08b2c-ee44-412d-9086-2b3f3f5136a7",
+      "email": "0997689202zxcv@gmail.com",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "08718a09-5a5a-4b6d-800a-cff321201629",
+      "email": "0ehy7l1y5lcq@comproa.org",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    },
+    {
+      "user_id": "002e0847-78a1-4914-9813-67c2914401fd",
+      "email": "0f5ef3c291@mailox.biz",
+      "score": 1.895,
+      "signals": 3,
+      "recs": 3,
+      "has_voice": true,
+      "has_messaging": false,
+      "has_ai": false
+    }
+  ]
+}

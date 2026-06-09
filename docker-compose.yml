@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  cross-sell-detector:
+    build: .
+    ports:
+      - "8420:8420"
+    volumes:
+      - ./data:/app/data:ro
+    environment:
+      - TELNYX_API_KEY=${TELNYX_API_KEY:-}
+    restart: unless-stopped

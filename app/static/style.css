@@ -1,0 +1,201 @@
+/* === Telnyx Cross-Sell Signal Detector — Portal-Matched Dark Theme === */
+/* Based on @telnyx-private/ui-react-v3 design tokens (dark palette) */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Telnyx 2024 Dark Palette */
+  --page-bg: #000000;
+  --surface-primary: #222227;          /* neutralsContainer */
+  --surface-secondary: #38383F;        /* mainTertiary */
+  --surface-tertiary: #393942;         /* mainQuaternary */
+  --border: #525252;                   /* neutralsOutlines */
+  --border-light: rgba(82,82,82,0.5);
+
+  --text-primary: #e5e5ea;             /* mainPrimary */
+  --text-secondary: #949494;           /* neutralsInactive (was --muted) */
+  --text-hover: #cfcfd4;              /* neutralsPrimaryHover */
+
+  --brand: #00E3AA;                    /* brandPrimary — the green */
+  --brand-secondary: #101010;          /* brandSecondary */
+  --brand-tertiary: #19ca9d;           /* brandTertiary */
+
+  --success: #00B386;                  /* feedbackSuccessOutline */
+  --success-fill: #19302A;             /* feedbackSuccessFill */
+  --warning: #F5C20A;                  /* feedbackWarningOutline */
+  --warning-fill: #3E361A;             /* feedbackWarningFill */
+  --error: #E95858;                    /* feedbackErrorOutline */
+  --error-fill: #4A2929;              /* feedbackErrorFill */
+  --info: #7E7EED;                     /* feedbackInfoOutline */
+  --info-fill: #323248;               /* feedbackInfoFill */
+
+  --link: #8ab0f4;                     /* miscTextLinks */
+  --hover-overlay: rgba(150,150,150,0.2); /* genericHover */
+
+  /* Typography (matching portal) */
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-alt: 'PP Formula', 'Inter', sans-serif;   /* headings */
+  --mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* Spacing */
+  --radius-sm: 4px;
+  --radius-md: 10px;                  /* MuiDialog borderRadius */
+  --radius-lg: 20px;                  /* MuiButton borderRadius */
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow: 0px 4px 4px 0px #00000033;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--page-bg); color: var(--text-primary); font-family: var(--font); line-height: 1.6; min-height: 100vh; font-size: 14px; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.mono { font-family: var(--mono); font-size: 13px; }
+
+/* ===== Top Bar ===== */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.5rem; background: var(--surface-primary); border-bottom: 1px solid var(--border); }
+.topbar h1 { font-family: var(--font-alt); font-size: 21px; font-weight: 800; letter-spacing: 0.02em; }
+.topbar-actions { display: flex; gap: 0.5rem; }
+
+/* Badge — matches MuiChip "nav" colorPrimary */
+.badge { display: inline-block; padding: 0.1rem 0.55rem; border-radius: var(--radius-pill); font-family: var(--font-alt); font-size: 11px; font-weight: 600; line-height: 2; margin-left: 0.75rem; background: var(--brand-tertiary); color: var(--surface-primary); border: 1px solid var(--brand-tertiary); }
+
+/* Buttons — matches MuiButton overrides */
+.btn { display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; text-transform: none; white-space: nowrap; line-height: 1; height: 32px; }
+.btn-accent { background: rgba(0,227,170,0.1); color: var(--brand); }
+.btn-accent:hover { background: rgba(0,227,170,0.18); text-decoration: none; }
+.btn-outline { background: transparent; color: var(--text-primary); border: 1.6px solid currentColor; }
+.btn-outline:hover { opacity: 0.8; background: transparent; text-decoration: none; }
+.btn-primary { background: rgba(0,227,170,0.15); color: var(--brand); border: none; }
+.btn-primary:hover { background: rgba(0,227,170,0.25); text-decoration: none; }
+.btn-danger { color: var(--error); border: 1.6px solid var(--error); background: transparent; }
+.btn-danger:hover { color: var(--error); border-color: var(--error); text-decoration: none; }
+
+/* ===== Stats Row ===== */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 1.25rem 1.5rem; }
+.stat-card { background: var(--surface-primary); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 1rem 1.25rem; }
+.stat-card.compact { padding: 0.6rem 1rem; }
+.stat-card .label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; font-family: var(--font-alt); }
+.stat-card .value { font-size: 1.75rem; font-weight: 700; font-family: var(--mono); margin-top: 0.2rem; }
+
+/* ===== Sections ===== */
+.section { padding: 0 1.5rem 1.5rem; }
+.section-title { font-family: var(--font-alt); font-size: 18px; font-weight: 600; margin-bottom: 1rem; }
+
+/* ===== Tables — matches MuiTableCell overrides ===== */
+.table-wrap { overflow-x: auto; background: var(--surface-primary); border: 1px solid var(--border-light); border-radius: var(--radius-sm); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 0.6rem 1rem; color: var(--text-primary); font-weight: 700; font-size: 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border-light); font-size: 14px; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--hover-overlay); }
+tr.dormant-row td { opacity: 0.45; }
+tr.dormant-row:hover td { opacity: 0.65; }
+
+/* ===== Chips/Badges — matches MuiChip overrides ===== */
+.tier { display: inline-flex; align-items: center; padding: 0 8px; border-radius: var(--radius-pill); height: 25px; font-family: var(--font-alt); font-size: 11px; font-weight: 600; line-height: 2; border: 1px solid; }
+.tier-hot { border-color: var(--error); background: var(--error-fill); color: var(--text-primary); }
+.tier-warm { border-color: var(--warning); background: var(--warning-fill); color: var(--text-primary); }
+.tier-cool { border-color: var(--info); background: var(--info-fill); color: var(--text-primary); }
+.tier-dormant { border-color: var(--text-secondary); background: rgba(148,148,148,0.12); color: var(--text-secondary); }
+
+.product-badge { display: inline-flex; align-items: center; padding: 0 8px; border-radius: var(--radius-pill); height: 25px; font-family: var(--font-alt); font-size: 11px; font-weight: 600; line-height: 2; border: 1px solid var(--info); background: var(--info-fill); color: var(--text-primary); }
+
+.category-badge { display: inline-flex; align-items: center; padding: 0 6px; border-radius: var(--radius-pill); height: 18px; font-family: var(--font-alt); font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: transparent; color: var(--text-secondary); margin-left: 0.5rem; }
+
+/* Effort — matches MuiChip color variants */
+.effort-badge { display: inline-flex; align-items: center; padding: 0 6px; border-radius: var(--radius-pill); height: 18px; font-family: var(--font-alt); font-size: 11px; font-weight: 600; border: 1px solid; }
+.effort-low { border-color: var(--success); background: var(--success-fill); color: var(--text-primary); }
+.effort-medium { border-color: var(--warning); background: var(--warning-fill); color: var(--text-primary); }
+.effort-high { border-color: var(--error); background: var(--error-fill); color: var(--text-primary); }
+
+.priority-badge { display: inline-flex; align-items: center; padding: 0 6px; border-radius: var(--radius-pill); height: 18px; font-family: var(--font-alt); font-size: 11px; font-weight: 600; border: 1px solid var(--error); background: var(--error-fill); color: var(--text-primary); }
+
+/* ===== Signal Distribution Bars ===== */
+.dist-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; font-size: 0.85rem; }
+.dist-label { width: 200px; text-align: right; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+.dist-bar-track { flex: 1; height: 22px; background: rgba(0,227,170,0.08); border-radius: var(--radius-sm); overflow: hidden; }
+.dist-bar-fill { height: 100%; background: var(--brand); border-radius: var(--radius-sm); transition: width 0.4s; min-width: 2px; }
+.dist-count { width: 50px; font-family: var(--mono); font-size: 12px; }
+
+/* ===== Cards ===== */
+.card { background: var(--surface-primary); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.card-header { font-weight: 600; font-size: 14px; margin-bottom: 0.75rem; }
+
+/* ===== Profile Grid ===== */
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+.profile-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.15rem; font-family: var(--font-alt); }
+.profile-field { padding: 0.5rem 0; }
+
+/* KYC */
+.kyc-good { color: var(--success); font-weight: 600; }
+.kyc-bad { color: var(--error); font-weight: 600; }
+
+/* Asset rows */
+.asset-row { display: flex; justify-content: space-between; padding: 0.35rem 0; border-bottom: 1px solid var(--border-light); font-size: 14px; }
+.asset-row:last-child { border-bottom: none; }
+.asset-type { color: var(--text-secondary); }
+.asset-count { font-weight: 600; }
+
+/* ===== Confidence Bar ===== */
+.conf-bar-track { height: 8px; background: rgba(0,227,170,0.1); border-radius: var(--radius-sm); overflow: hidden; margin: 0; flex: 1; }
+.conf-bar-fill { height: 100%; background: var(--brand); border-radius: var(--radius-sm); transition: width 0.4s; }
+
+/* ===== Signal Card ===== */
+.signal-card { border-left: 3px solid var(--brand); }
+.signal-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+.signal-name { font-weight: 600; font-size: 14px; }
+.signal-desc { color: var(--text-secondary); font-size: 14px; margin-bottom: 0.75rem; }
+.signal-metrics { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.metric { display: flex; align-items: center; gap: 0.5rem; }
+.metric-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); min-width: 60px; font-family: var(--font-alt); }
+.metric-value { font-size: 12px; font-family: var(--mono); min-width: 40px; }
+.evidence-box { background: var(--info-fill); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; margin-top: 0.5rem; }
+.evidence-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; font-family: var(--font-alt); }
+.evidence-text { font-size: 14px; color: var(--text-primary); }
+
+/* ===== Rec Card ===== */
+.rec-card { border-left: 3px solid var(--warning); }
+.rec-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+.rec-title { font-weight: 600; font-size: 16px; }
+.rec-badges { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.rec-feature { color: var(--text-secondary); font-size: 14px; margin-bottom: 0.5rem; }
+.rec-confidence { display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+.rec-section { margin: 0.75rem 0; }
+.rec-section-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.25rem; font-family: var(--font-alt); }
+.value-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; }
+.value-item { padding: 0.5rem; background: var(--success-fill); border-radius: var(--radius-sm); }
+.value-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.15rem; font-family: var(--font-alt); }
+.value-amount { font-size: 14px; font-weight: 600; color: var(--brand); font-family: var(--mono); }
+
+/* Evidence & Steps */
+.evidence li, .steps li { margin-bottom: 0.35rem; font-size: 14px; color: var(--text-secondary); }
+.evidence li::marker, .steps li::marker { color: var(--brand); }
+
+/* Demo highlight */
+.demo-highlight { margin-top: 0.75rem; padding: 0.5rem 0.75rem; background: var(--warning-fill); border-radius: var(--radius-sm); font-size: 14px; color: var(--warning); }
+
+/* ===== Breadcrumb ===== */
+.breadcrumb { padding: 0.75rem 1.5rem; font-size: 14px; color: var(--text-secondary); }
+.breadcrumb span { margin: 0 0.5rem; }
+
+/* ===== Filter Bar ===== */
+.filter-bar { display: flex; gap: 1rem; padding: 1rem 1.5rem; align-items: center; }
+.filter-bar select, .filter-bar input { background: var(--surface-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.45rem 0.75rem; font-size: 14px; font-family: var(--font); }
+.filter-bar input { flex: 1; max-width: 320px; }
+.filter-bar select:focus, .filter-bar input:focus { border-color: var(--brand); outline: none; }
+
+/* Two-col */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+/* Footer */
+.footer { text-align: center; padding: 2rem; color: var(--text-secondary); font-size: 12px; border-top: 1px solid var(--border-light); margin-top: 2rem; }
+
+/* ===== Dialog (Help Modal) — matches MuiDialog overrides ===== */
+dialog::backdrop { background: rgba(0,0,0,0.6); }
+dialog { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface-primary); color: var(--text-primary); max-width: 520px; padding: 0; box-shadow: var(--shadow); }
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2,1fr); } .two-col { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .stats-row { grid-template-columns: 1fr; } .topbar { flex-wrap: wrap; gap: 0.5rem; } }
