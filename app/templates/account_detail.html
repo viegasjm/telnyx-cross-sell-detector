@@ -50,6 +50,34 @@
       <div class="profile-field"><span class="profile-label">Opportunity</span><span class="tier tier-{{ account.opportunity_tier }}">{{ account.opportunity_tier | capitalize }}</span> <span class="mono">{{ account.opportunity_score }}</span></div>
       <div class="profile-field"><span class="profile-label">Use Case</span>{{ account.primary_use_case }}</div>
       <div class="profile-field"><span class="profile-label">Created</span>{{ account.created_at | fmt_date }}</div>
+      <div class="profile-field"><span class="profile-label">Industry</span>{{ account.industry }}</div>
+      <div class="profile-field"><span class="profile-label">Enrichment</span>{{ account.customer_enrichment.provider }} · {{ (account.customer_enrichment.confidence * 100)|round(0)|int }}%</div>
+    </div>
+  </div>
+
+  <!-- Customer Enrichment -->
+  <div class="section">
+    <div class="section-title">Customer Context</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header">External / Sales Context</div>
+        <div class="asset-row"><span class="asset-type">Provider</span><span class="asset-count">{{ account.customer_enrichment.provider }}</span></div>
+        <div class="asset-row"><span class="asset-type">Source Agent</span><span class="asset-count" style="font-size:11px">{{ account.customer_enrichment.source_agent or '—' }}</span></div>
+        <div class="asset-row"><span class="asset-type">Domain</span><span class="asset-count">{{ account.customer_enrichment.domain or '—' }}</span></div>
+        <div class="asset-row"><span class="asset-type">Industry</span><span class="asset-count">{{ account.customer_enrichment.industry }}</span></div>
+      </div>
+      <div class="card">
+        <div class="card-header">Fit Hints</div>
+        {% for h in account.customer_enrichment.product_fit_hints %}
+        <span class="product-badge" style="margin:2px;background:rgba(0,227,170,0.12);color:var(--brand)">{{ h }}</span>
+        {% endfor %}
+        {% if account.customer_enrichment.unavailable_reason %}
+        <div class="evidence-box" style="margin-top:1rem">
+          <div class="evidence-label">Note</div>
+          <div class="evidence-text">{{ account.customer_enrichment.unavailable_reason }}</div>
+        </div>
+        {% endif %}
+      </div>
     </div>
   </div>
 

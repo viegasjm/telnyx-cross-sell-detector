@@ -510,6 +510,159 @@ def _detect_high_abandonment_rate(data: dict) -> Optional[Signal]:
     return None
 
 
+
+
+def _get_total_messages(data: dict) -> int:
+    for key in ("total_messages", "message_count", "sms_count", "cdr_messaging_30d", "messaging_volume_30d"):
+        val = data.get(key)
+        if isinstance(val, (int, float)):
+            return int(val)
+    return 0
+
+
+def _detect_has_messaging(data: dict) -> Optional[Signal]:
+    """has_messaging: Account has Messaging profiles or message traffic."""
+    profiles = data.get("messaging_profiles", [])
+    total_profiles = data.get("total_messaging_profiles", 0) or len(profiles)
+    total_messages = _get_total_messages(data)
+    has_messaging = bool(data.get("has_messaging")) or total_profiles > 0 or total_messages > 0
+    if has_messaging:
+        return Signal(
+            id="has_messaging",
+            name="has_messaging",
+            description="Account uses Messaging or has messaging configuration",
+            confidence=0.9,
+            strength=0.8,
+            evidence=f"{total_profiles} messaging profile(s), {total_messages} message(s) in period",
+            cross_sell_target="Verify",
+            category=SignalCategory.MESSAGING_USAGE,
+        )
+    return None
+
+
+def _detect_high_messaging_volume(data: dict) -> Optional[Signal]:
+    """high_messaging_volume: Account sends enough messages to justify add-ons."""
+    total_messages = _get_total_messages(data)
+    total_profiles = data.get("total_messaging_profiles", 0) or len(data.get("messaging_profiles", []))
+    if total_messages >= 1000 or total_profiles >= 3:
+        return Signal(
+            id="high_messaging_volume",
+            name="high_messaging_volume",
+            description="High messaging activity indicates add-on opportunity",
+            confidence=0.9 if total_messages >= 1000 else 0.7,
+            strength=0.85,
+            evidence=f"{total_messages} message(s), {total_profiles} messaging profile(s)",
+            cross_sell_target="Verify",
+            category=SignalCategory.MESSAGING_USAGE,
+        )
+    return None
+
+
+def _detect_no_voice_usage(data: dict) -> Optional[Signal]:
+    """no_voice_usage: Messaging/numbers customer has no voice product."""
+    has_voice = bool(data.get("has_voice")) or data.get("total_connections", 0) > 0 or data.get("connections_count", 0) > 0
+    has_messaging = bool(data.get("has_messaging")) or data.get("total_messaging_profiles", 0) > 0 or _get_total_messages(data) > 0
+    if has_messaging and not has_voice:
+        return Signal(
+            id="no_voice_usage",
+            name="no_voice_usage",
+            description="Messaging customer has no Voice/SIP usage",
+            confidence=0.85,
+            strength=0.75,
+            evidence="Messaging present; no voice connections/call usage detected",
+            cross_sell_target="Voice / SIP Trunking",
+            category=SignalCategory.MESSAGING_USAGE,
+        )
+    return None
+
+
+def _detect_has_numbers_no_messaging(data: dict) -> Optional[Signal]:
+    """has_numbers_no_messaging: Number inventory without messaging enabled."""
+    numbers = data.get("total_numbers", data.get("numbers_count", 0)) or len(data.get("phone_numbers", []))
+    has_numbers = bool(data.get("has_numbers")) or numbers > 0
+    has_messaging = bool(data.get("has_messaging")) or data.get("total_messaging_profiles", 0) > 0 or _get_total_messages(data) > 0
+    if has_numbers and not has_messaging:
+        return Signal(
+            id="has_numbers_no_messaging",
+            name="has_numbers_no_messaging",
+            description="Account owns numbers but has no Messaging profile/traffic",
+            confidence=0.85,
+            strength=0.8,
+            evidence=f"{numbers} phone number(s), 0 messaging profiles/messages",
+            cross_sell_target="Messaging",
+            category=SignalCategory.MESSAGING_USAGE,
+        )
+    return None
+
+
+def _detect_has_sms_no_verify(data: dict) -> Optional[Signal]:
+    """has_sms_no_verify: Messaging/SMS use but no Verify product."""
+    has_sms = bool(data.get("has_messaging")) or data.get("total_messaging_profiles", 0) > 0 or _get_total_messages(data) > 0
+    verify_profiles = data.get("verify_profiles", [])
+    has_verify = len(verify_profiles) > 0 or any(_has_keyword(_connection_text(c), _VERIFY_KW) for c in data.get("connections", []))
+    if has_sms and not has_verify:
+        return Signal(
+            id="has_sms_no_verify",
+            name="has_sms_no_verify",
+            description="SMS/Messaging usage without Verify/OTP product",
+            confidence=0.9,
+            strength=0.85,
+            evidence=f"Messaging present; {len(verify_profiles)} Verify profile(s)",
+            cross_sell_target="Verify",
+            category=SignalCategory.MESSAGING_USAGE,
+        )
+    return None
+
+
+def _detect_international_footprint(data: dict) -> Optional[Signal]:
+    """international_footprint: Multi-country usage/number footprint."""
+    countries = set()
+    if data.get("country") and data.get("country") != "—":
+        countries.add(str(data.get("country")))
+    for pn in data.get("phone_numbers", []):
+        if isinstance(pn, dict) and pn.get("country_code"):
+            countries.add(str(pn.get("country_code")))
+    for feature in data.get("number_features", []) or []:
+        if isinstance(feature, str) and len(feature) == 2:
+            countries.add(feature.upper())
+    if len(countries) >= 2:
+        return Signal(
+            id="international_footprint",
+            name="international_footprint",
+            description="Customer has multi-country footprint",
+            confidence=0.75,
+            strength=0.7,
+            evidence=f"Countries detected: {', '.join(sorted(countries)[:6])}",
+            cross_sell_target="Global Messaging / Local Presence",
+            category=SignalCategory.TECH_STACK,
+        )
+    return None
+
+
+def _detect_support_complaints_by_product(data: dict) -> Optional[Signal]:
+    """support_complaints_by_product: Support/Pylon pain points indicate expansion/retention opportunity."""
+    complaints = data.get("support_complaints_by_product") or data.get("pylon_complaints") or []
+    if isinstance(complaints, dict):
+        total = sum(int(v) for v in complaints.values() if isinstance(v, (int, float)))
+        top = sorted(complaints.items(), key=lambda kv: kv[1], reverse=True)[:3]
+        detail = ", ".join(f"{k}:{v}" for k, v in top)
+    elif isinstance(complaints, list):
+        total = len(complaints)
+        detail = f"{total} complaint record(s)"
+    else:
+        return None
+    if total >= 2:
+        return Signal(
+            id="support_complaints_by_product",
+            name="support_complaints_by_product",
+            description="Repeated support complaints indicate product pain and retention/cross-sell opportunity",
+            confidence=0.75,
+            strength=0.8,
+            evidence=detail,
+            cross_sell_target="Observability / Support Intelligence",
+            category=SignalCategory.SUPPORT,
+        )
+    return None
 # ---------------------------------------------------------------------------
 # Negative signals (exclude templates when these are present)
 # ---------------------------------------------------------------------------
@@ -606,6 +759,13 @@ def _detect_has_verify(data: dict) -> Optional[Signal]:
 # Ordered: positive signals first, then negative/exclusion signals
 _DETECTORS = [
     # --- Positive signals (trigger template matching) ---
+    _detect_has_messaging,
+    _detect_high_messaging_volume,
+    _detect_no_voice_usage,
+    _detect_has_numbers_no_messaging,
+    _detect_has_sms_no_verify,
+    _detect_international_footprint,
+    _detect_support_complaints_by_product,
     _detect_has_call_control,
     _detect_has_voice_product,
     _detect_has_voice_calls,
@@ -641,11 +801,17 @@ def _is_account_dormant(data: dict) -> bool:
     cross-sell into.
     """
     return (
-        data.get("total_calls", 0) == 0
+        not data.get("has_voice")
+        and not data.get("has_messaging")
+        and not data.get("has_numbers")
+        and data.get("total_calls", 0) == 0
         and data.get("total_messages", 0) == 0
         and data.get("voice_connection_count", 0) == 0
         and data.get("messaging_profile_count", 0) == 0
         and data.get("phone_number_count", 0) == 0
+        and data.get("total_connections", data.get("connections_count", 0)) == 0
+        and data.get("total_messaging_profiles", 0) == 0
+        and data.get("total_numbers", data.get("numbers_count", 0)) == 0
     )
 
 

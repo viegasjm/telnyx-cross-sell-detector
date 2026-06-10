@@ -192,6 +192,56 @@ INTEGRATION_PATHS = {
 }
 
 
+# Additional Bot Week cross-sell products beyond Voice → AI.
+RETENTION_UPLIFT.update({
+    "Messaging": 9,
+    "Verify": 8,
+    "Voice / SIP Trunking": 10,
+    "Global Messaging / Local Presence": 7,
+    "Observability / Support Intelligence": 6,
+})
+INTEGRATION_EFFORT_MAP.update({
+    "Messaging": IntegrationEffort.LOW,
+    "Verify": IntegrationEffort.LOW,
+    "Voice / SIP Trunking": IntegrationEffort.MEDIUM,
+    "Global Messaging / Local Presence": IntegrationEffort.MEDIUM,
+    "Observability / Support Intelligence": IntegrationEffort.MEDIUM,
+})
+INTEGRATION_PATHS.update({
+    "Messaging": [
+        "Create or select a Messaging Profile",
+        "Enable SMS/MMS-capable numbers already in inventory",
+        "Configure webhooks and delivery receipt handling",
+        "Run low-volume notification pilot",
+        "Expand to customer notification / reminder workflows",
+    ],
+    "Verify": [
+        "Create Verify profile",
+        "Choose verification channels: SMS, voice, WhatsApp",
+        "Integrate OTP verification into signup/login or transaction flow",
+        "Monitor conversion and fraud reduction metrics",
+    ],
+    "Voice / SIP Trunking": [
+        "Create SIP credential or IP-auth connection",
+        "Assign existing/local numbers to voice routing",
+        "Run test inbound and outbound call flows",
+        "Add failover and monitoring before production rollout",
+    ],
+    "Global Messaging / Local Presence": [
+        "Map current countries and destination mix",
+        "Identify countries where local sender/number presence improves conversion",
+        "Provision compliant local numbers/profiles",
+        "Pilot country-specific routing and delivery monitoring",
+    ],
+    "Observability / Support Intelligence": [
+        "Map recurring support categories to product workflows",
+        "Enable delivery/call/debug observability for affected product",
+        "Create account-facing health checks and alerts",
+        "Review support trend after two weeks",
+    ],
+})
+
+
 # ---------------------------------------------------------------------------
 # Recommendation template definitions
 # ---------------------------------------------------------------------------
@@ -350,6 +400,112 @@ TEMPLATES: List[RecommendationTemplate] = [
         ],
     ),
 ]
+
+TEMPLATES.extend([
+    RecommendationTemplate(
+        product="Messaging",
+        feature="SMS/MMS Customer Notifications",
+        title="Messaging — Activate SMS/MMS on Existing Number Footprint",
+        demo_highlight="Customer starts sending appointment/order notifications from existing Telnyx numbers",
+        required_signal_categories=[SignalCategory.MESSAGING_USAGE],
+        required_signal_names=["has_numbers_no_messaging"],
+        excluded_signal_names=["has_messaging"],
+        reasoning_template=[
+            "Signal detected: {signal_name} — {evidence}",
+            "Inference: Customer owns number inventory but is not using messaging workflows",
+            "Opportunity: Messaging can add reminders, alerts, and customer notifications without a new vendor",
+            "Value: Automating reminders and notifications can save ${savings}/mo in manual outreach",
+            "Recommendation: Enable Messaging Profiles for existing eligible numbers",
+        ],
+        default_evidence_bullets=[
+            "Customer has phone number inventory",
+            "No messaging profile or message traffic detected",
+            "Existing numbers can support customer notification workflows",
+        ],
+    ),
+    RecommendationTemplate(
+        product="Verify",
+        feature="OTP / Identity Verification",
+        title="Verify — Add OTP Verification to Messaging Workflows",
+        demo_highlight="A login/signup OTP flow is added using the customer's existing messaging channel",
+        required_signal_categories=[SignalCategory.MESSAGING_USAGE],
+        required_signal_names=["has_messaging", "high_messaging_volume", "has_sms_no_verify"],
+        excluded_signal_names=["has_verify"],
+        reasoning_template=[
+            "Signal detected: {signal_name} — {evidence}",
+            "Inference: Customer already uses messaging but has no dedicated verification product",
+            "Opportunity: Verify packages OTP, fraud controls, and conversion monitoring into a first-class workflow",
+            "Value: Reducing custom OTP build/ops work can save ${savings}/mo and improve conversion",
+            "Recommendation: Position Verify for authentication, signup, or transaction confirmation use cases",
+        ],
+        default_evidence_bullets=[
+            "Messaging usage/configuration detected",
+            "No Verify profile detected",
+            "OTP and identity checks are natural adjacent workflows for messaging customers",
+        ],
+    ),
+    RecommendationTemplate(
+        product="Voice / SIP Trunking",
+        feature="Programmable Voice and SIP Connectivity",
+        title="Voice / SIP — Expand Messaging Customers into Voice",
+        demo_highlight="Customer adds click-to-call or voice failover beside existing messaging workflows",
+        required_signal_categories=[SignalCategory.MESSAGING_USAGE],
+        required_signal_names=["no_voice_usage"],
+        excluded_signal_names=["has_voice_product"],
+        reasoning_template=[
+            "Signal detected: {signal_name} — {evidence}",
+            "Inference: Customer has customer-communication workflows but no voice channel on Telnyx",
+            "Opportunity: Add programmable voice, SIP trunking, or failover calls for higher-touch interactions",
+            "Value: Channel consolidation and voice fallback can save ${savings}/mo in vendor/tooling overhead",
+            "Recommendation: Pitch Voice/SIP as the next channel adjacent to messaging",
+        ],
+        default_evidence_bullets=[
+            "Messaging usage detected",
+            "No voice/SIP usage detected",
+            "Multi-channel customers retain better than single-product customers",
+        ],
+    ),
+    RecommendationTemplate(
+        product="Global Messaging / Local Presence",
+        feature="Country-Specific Messaging and Local Number Presence",
+        title="Global Messaging — Match International Footprint with Local Presence",
+        demo_highlight="International footprint is mapped to local sender/number strategy by country",
+        required_signal_categories=[SignalCategory.TECH_STACK],
+        required_signal_names=["international_footprint"],
+        excluded_signal_names=[],
+        reasoning_template=[
+            "Signal detected: {signal_name} — {evidence}",
+            "Inference: Customer likely serves multiple geographies with different delivery/compliance needs",
+            "Opportunity: Local presence and country-specific messaging improve trust, answer rates, and delivery",
+            "Value: Better local routing/presence can save ${savings}/mo through improved conversion and fewer failed contacts",
+            "Recommendation: Review global footprint and pitch local presence / global messaging package",
+        ],
+        default_evidence_bullets=[
+            "Multiple countries detected in account footprint",
+            "Local presence can improve trust and conversion",
+        ],
+    ),
+    RecommendationTemplate(
+        product="Observability / Support Intelligence",
+        feature="Customer-Facing Debugging and Health Visibility",
+        title="Support Intelligence — Turn Repeated Complaints into Productized Visibility",
+        demo_highlight="Repeated support pain becomes an account-specific health/debug recommendation",
+        required_signal_categories=[SignalCategory.SUPPORT],
+        required_signal_names=["support_complaints_by_product"],
+        excluded_signal_names=[],
+        reasoning_template=[
+            "Signal detected: {signal_name} — {evidence}",
+            "Inference: Customer is repeatedly hitting support-visible friction in a product area",
+            "Opportunity: Observability/debug tooling reduces support load and improves retention",
+            "Value: Reducing repeat support contacts can save ${savings}/mo in operating cost and protect renewal risk",
+            "Recommendation: Offer product-specific health/debug visibility or proactive support package",
+        ],
+        default_evidence_bullets=[
+            "Repeated support complaints detected",
+            "Support pain can indicate both churn risk and expansion opportunity",
+        ],
+    ),
+])
 
 
 # ---------------------------------------------------------------------------
@@ -628,6 +784,11 @@ class InferenceEngine:
             "AI Transcription & Analysis": TELNYX_AI_TRANSCRIPTION_REVENUE,
             "AI-Powered IVR": TELNYX_AI_IVR_REVENUE,
             "AI Verification": TELNYX_AI_VERIFICATION_REVENUE,
+            "Messaging": 90.0,
+            "Verify": 110.0,
+            "Voice / SIP Trunking": 180.0,
+            "Global Messaging / Local Presence": 140.0,
+            "Observability / Support Intelligence": 80.0,
         }
         base = revenue_map.get(product, 100.0)
         # Scale by signal strength (stronger signals → higher expected adoption)

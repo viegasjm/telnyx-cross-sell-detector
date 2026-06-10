@@ -41,6 +41,9 @@
       "total_results": 0,
       "records": []
     },
+    "messaging_profiles": [],
+    "verify_profiles": [],
+    "support_complaints_by_product": {},
     "raw_user": {
       "id": "6e6ac86f-5b15-4bcf-948f-eb865a6f3146",
       "record_type": "user",
@@ -202,6 +205,9 @@
       "total_results": 0,
       "records": []
     },
+    "messaging_profiles": [],
+    "verify_profiles": [],
+    "support_complaints_by_product": {},
     "raw_user": {
       "id": "c9b901a0-b12c-4967-a92b-34b92d011113",
       "record_type": "user",
@@ -409,6 +415,9 @@
       "total_results": 0,
       "records": []
     },
+    "messaging_profiles": [],
+    "verify_profiles": [],
+    "support_complaints_by_product": {},
     "raw_user": {
       "id": "7498defd-a6fb-4b31-85aa-e4d439972c63",
       "record_type": "user",
@@ -591,6 +600,9 @@
       "total_results": 0,
       "records": []
     },
+    "messaging_profiles": [],
+    "verify_profiles": [],
+    "support_complaints_by_product": {},
     "raw_user": {
       "id": "dea67ade-2bd7-448c-9fcf-abeedd6f2106",
       "record_type": "user",
@@ -761,6 +773,9 @@
       "total_results": 0,
       "records": []
     },
+    "messaging_profiles": [],
+    "verify_profiles": [],
+    "support_complaints_by_product": {},
     "raw_user": {
       "id": "457dfb71-326c-4290-8c2f-8ba9efff6805",
       "record_type": "user",

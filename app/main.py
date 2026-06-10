@@ -15,6 +15,7 @@ from __future__ import annotations
 import ast
 import json
 import logging
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -23,6 +24,10 @@ from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
+from services.customer_enrichment import CustomerEnrichmentProvider
+from services.signal_detector import detect_signals
+from services.inference_engine import generate_recommendations
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -37,6 +42,7 @@ DEMO_DIR = DATA_DIR / "demo"  # Anonymized data for Bot Week
 PIPELINE_FILE = (DEMO_DIR / "demo_accounts.json") if (DEMO_DIR / "demo_accounts.json").exists() else (DATA_DIR / "demo_accounts.json")
 ENRICHED_FILE = (DEMO_DIR / "enriched_accounts_cdr.json") if (DEMO_DIR / "enriched_accounts_cdr.json").exists() else (DATA_DIR / "enriched_accounts_cdr.json")
 FULL_SCAN_FILE = (DEMO_DIR / "all_accounts_signals.json") if (DEMO_DIR / "all_accounts_signals.json").exists() else (DATA_DIR / "all_accounts_signals.json")
+CUSTOMER_ENRICHMENT = CustomerEnrichmentProvider(DATA_DIR)
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -125,6 +131,92 @@ def _format_date(value: str) -> str:
     return fmt_date(value)
 
 
+
+
+def _signal_to_dict(sig: Any) -> Dict[str, Any]:
+    if hasattr(sig, "to_dict"):
+        return sig.to_dict()
+    return dict(sig)
+
+
+def _jsonify_dataclass(value: Any) -> Any:
+    if is_dataclass(value):
+        return _jsonify_dataclass(asdict(value))
+    if isinstance(value, dict):
+        return {k: _jsonify_dataclass(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_jsonify_dataclass(v) for v in value]
+    if hasattr(value, "value"):
+        return value.value
+    return value
+
+
+def _rec_to_dict(rec: Any) -> Dict[str, Any]:
+    if hasattr(rec, "to_dict"):
+        data = rec.to_dict()
+    else:
+        data = _jsonify_dataclass(rec)
+    if isinstance(data, dict):
+        # Normalize inference-engine dataclass recommendations to the older
+        # dashboard template schema used by the Bot Week demo.
+        data.setdefault("product_name", data.get("target_product"))
+        data.setdefault("feature_description", data.get("target_feature"))
+        data.setdefault("evidence", data.get("evidence_bullets", []))
+        data.setdefault("next_steps", data.get("integration_path", []))
+        if "integration_effort" in data:
+            data.setdefault("effort", str(data.get("integration_effort", "")).lower())
+    return data
+
+
+def _augment_account_opportunities(acct: Dict[str, Any], customer_enrichment: Dict[str, Any]) -> Dict[str, Any]:
+    """Add newly-supported cross-sell signals/recs to precomputed demo data.
+
+    The repo ships precomputed Bot Week JSON. This keeps old data useful while
+    letting newly-added detectors (Messaging, Verify, Voice/SIP, support pain)
+    show up immediately without rerunning a prod crawl.
+    """
+    existing_signals = list(acct.get("signals") or [])
+    existing_names = {s.get("name") for s in existing_signals if isinstance(s, dict)}
+    dynamic_signal_objs = detect_signals(acct)
+    dynamic_signals = [_signal_to_dict(s) for s in dynamic_signal_objs]
+    new_signal_objs = []
+    for obj, sig in zip(dynamic_signal_objs, dynamic_signals):
+        if sig.get("name") not in existing_names:
+            existing_signals.append(sig)
+            existing_names.add(sig.get("name"))
+            new_signal_objs.append(obj)
+
+    existing_recs = list(acct.get("recommendations") or [])
+    existing_products = {r.get("target_product") or r.get("product_name") for r in existing_recs if isinstance(r, dict)}
+    # Generate recommendations from dynamic signals only; legacy precomputed
+    # dict signals do not share the inference dataclass type.
+    rec_objs = generate_recommendations(dynamic_signal_objs, {"customer_enrichment": customer_enrichment})
+    for rec in [_rec_to_dict(r) for r in rec_objs]:
+        product = rec.get("target_product") or rec.get("product_name")
+        if product not in existing_products:
+            existing_recs.append(rec)
+            existing_products.add(product)
+
+    score = sum(float(s.get("confidence", 0)) * float(s.get("strength", 0)) for s in existing_signals if isinstance(s, dict))
+    return {
+        "signals": existing_signals,
+        "recommendations": existing_recs,
+        "opportunity_score": score,
+    }
+
+def _current_products(acct: Dict[str, Any]) -> List[str]:
+    products: List[str] = []
+    if acct.get("has_voice") or acct.get("connections_count", 0) or acct.get("cdr_voice_30d_raw", 0):
+        products.append("Voice")
+    if acct.get("has_messaging") or acct.get("total_messaging_profiles", 0):
+        products.append("Messaging")
+    if acct.get("has_ai") or acct.get("total_ai_assistants", 0):
+        products.append("AI")
+    if acct.get("has_numbers") or acct.get("numbers_count", 0):
+        products.append("Numbers")
+    return products
+
+
 # ---------------------------------------------------------------------------
 # Data store
 # ---------------------------------------------------------------------------
@@ -200,6 +292,17 @@ class DashboardData:
 
                 connections_count = acct.get("total_connections", 0) or 0
                 numbers_count = acct.get("total_numbers", 0) or 0
+                customer_enrichment = CUSTOMER_ENRICHMENT.enrich_account({**acct, **enriched, "user_id": uid, "business_name": biz_name, "full_name": full_name})
+                augmented = _augment_account_opportunities({**acct, "connections_count": connections_count, "numbers_count": numbers_count}, customer_enrichment)
+                signals = augmented["signals"]
+                recommendations = augmented["recommendations"]
+                score = augmented["opportunity_score"]
+                tier = _classify_tier(score)
+                top_target = recommendations[0].get("target_product", "") if recommendations else ""
+                est_revenue = 0.0
+                for rec in recommendations:
+                    val = _safe_parse_estimated_value(rec.get("estimated_value"))
+                    est_revenue += float(val.get("telnyx_revenue_monthly", 0))
 
                 merged.append({
                     "user_id": uid,
@@ -230,6 +333,10 @@ class DashboardData:
                     "est_revenue_monthly": round(est_revenue, 2),
                     "is_dormant": False,
                     "enrichment_time_s": 0,
+                    "customer_enrichment": customer_enrichment,
+                    "industry": customer_enrichment.get("industry", "unknown"),
+                    "product_fit_hints": customer_enrichment.get("product_fit_hints", []),
+                    "products": _current_products({**acct, "connections_count": connections_count, "numbers_count": numbers_count}),
                     # Full-scan extras
                     "has_voice": acct.get("has_voice", False),
                     "has_messaging": acct.get("has_messaging", False),
@@ -275,6 +382,17 @@ class DashboardData:
                 cdr_cc_capped = cdr_cc_raw >= 10000
                 cdr_voice = f"{cdr_voice_raw:,}+" if cdr_voice_capped else cdr_voice_raw
                 cdr_cc = f"{cdr_cc_raw:,}+" if cdr_cc_capped else cdr_cc_raw
+                customer_enrichment = CUSTOMER_ENRICHMENT.enrich_account({**acct, **enriched, "user_id": uid, "business_name": biz_name, "full_name": full_name})
+                augmented = _augment_account_opportunities({**acct, "connections_count": connections_count, "numbers_count": numbers_count}, customer_enrichment)
+                signals = augmented["signals"]
+                recommendations = augmented["recommendations"]
+                score = augmented["opportunity_score"]
+                tier = _classify_tier(score)
+                top_target = recommendations[0].get("target_product", "") if recommendations else ""
+                est_revenue = 0.0
+                for rec in recommendations:
+                    val = _safe_parse_estimated_value(rec.get("estimated_value"))
+                    est_revenue += float(val.get("telnyx_revenue_monthly", 0))
 
                 merged.append({
                     "user_id": uid,
@@ -308,6 +426,10 @@ class DashboardData:
                     "est_revenue_monthly": round(est_revenue, 2),
                     "is_dormant": dormant,
                     "enrichment_time_s": acct.get("enrichment_time_s", 0),
+                    "customer_enrichment": customer_enrichment,
+                    "industry": customer_enrichment.get("industry", "unknown"),
+                    "product_fit_hints": customer_enrichment.get("product_fit_hints", []),
+                    "products": _current_products({**acct, "connections_count": connections_count, "numbers_count": numbers_count, "cdr_voice_30d_raw": cdr_voice_raw, "cdr_callcontrol_30d_raw": cdr_cc_raw}),
                 })
 
         # Sort by opportunity_score descending, dormant last
@@ -540,6 +662,12 @@ async def api_account(user_id: str):
         if a["user_id"] == user_id or a["user_id"].startswith(user_id):
             return a
     return {"error": f"Account {user_id} not found"}, 404
+
+
+@app.get("/api/enrichment/providers")
+async def api_enrichment_providers():
+    """JSON API — customer enrichment provider ranking/capabilities."""
+    return {"providers": CUSTOMER_ENRICHMENT.provider_capabilities()}
 
 
 @app.get("/api/signals")

@@ -85,8 +85,8 @@
           <tr>
             <th>#</th>
             <th>Account</th>
+            <th>Industry</th>
             <th>Connections</th>
-            <th>Voice CDR</th>
             <th>Signals</th>
             <th>Score</th>
             <th>Top Target</th>
@@ -102,8 +102,8 @@
               <a href="/account/{{ acct.user_id }}">{{ acct.business_name }}</a>
               <div class="mono" style="color:var(--text-secondary);font-size:12px">{{ acct.email }}</div>
             </td>
+            <td><span class="product-badge">{{ acct.industry }}</span></td>
             <td class="mono">{{ acct.connections_count }}</td>
-            <td class="mono">{{ acct.cdr_voice_30d }}</td>
             <td class="mono">{{ acct.signal_count }}</td>
             <td><span class="tier tier-{{ acct.opportunity_tier }}">{{ acct.opportunity_score }}</span></td>
             <td>{% if acct.top_cross_sell_target %}<span class="product-badge">{{ acct.top_cross_sell_target }}</span>{% else %}—{% endif %}</td>

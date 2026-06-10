@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
 import time
 from dataclasses import dataclass, field, asdict
@@ -51,6 +52,9 @@ class AccountData:
     connections: List[Dict[str, Any]] = field(default_factory=list)
     phone_numbers: List[Dict[str, Any]] = field(default_factory=list)
     cdr_summary: Dict[str, Any] = field(default_factory=dict)
+    messaging_profiles: List[Dict[str, Any]] = field(default_factory=list)
+    verify_profiles: List[Dict[str, Any]] = field(default_factory=list)
+    support_complaints_by_product: Dict[str, int] = field(default_factory=dict)
     raw_user: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -58,8 +62,15 @@ class AccountData:
 
     @property
     def has_usage(self) -> bool:
-        """True if this account has at least one connection or phone number."""
-        return len(self.connections) > 0 or len(self.phone_numbers) > 0
+        """True if this account has at least one detectable Telnyx product asset."""
+        cdr_total = self.cdr_summary.get("total_results", 0) if isinstance(self.cdr_summary, dict) else 0
+        return (
+            len(self.connections) > 0
+            or len(self.phone_numbers) > 0
+            or len(self.messaging_profiles) > 0
+            or len(self.verify_profiles) > 0
+            or cdr_total > 0
+        )
 
     @property
     def connection_types(self) -> List[str]:
@@ -79,15 +90,16 @@ class AccountScanner:
         self,
         cache_dir: str = "data",
         max_accounts: Optional[int] = None,
-        # How many raw candidates to collect before enrichment.
+        # How many raw candidates to collect before enrichment. None means full base.
         # We over-collect because many will have zero assets.
-        collect_limit: int = 300,
+        collect_limit: Optional[int] = 300,
     ) -> None:
         self.cache_dir = PROJECT_DIR / cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.max_accounts = max_accounts
         self.collect_limit = collect_limit
         self._cache_path = self.cache_dir / "scan_results.json"
+        self.scan_stats: Dict[str, Any] = {}
         self._mcp: Optional[MCPClient] = None
 
     def _get_mcp(self) -> MCPClient:
@@ -100,20 +112,27 @@ class AccountScanner:
 
     @staticmethod
     def _get_auth_token() -> str:
+        for env_name in ("TELNYX_PROD_API_KEY", "CORE_API_KEY"):
+            token = os.environ.get(env_name, "").strip()
+            if token:
+                return token
         try:
             return subprocess.check_output(
                 ["security", "find-generic-password", "-s", "TELNYX_PROD_API_KEY", "-w"],
                 text=True,
             ).strip()
         except subprocess.CalledProcessError:
-            raise RuntimeError("Could not get TELNYX_PROD_API_KEY from keychain")
+            raise RuntimeError(
+                "Could not get TELNYX_PROD_API_KEY from env or keychain. "
+                "Export TELNYX_PROD_API_KEY or CORE_API_KEY before crawling."
+            )
 
     # -- Public API ----------------------------------------------------------
 
     def scan_all(self) -> List[AccountData]:
         """Two-phase scan: collect candidates, enrich, filter by usage."""
-        logger.info("Starting account scan (collect_limit=%d, max_accounts=%s)",
-                     self.collect_limit, self.max_accounts)
+        logger.info("Starting account scan (collect_limit=%s, max_accounts=%s)",
+                     self.collect_limit if self.collect_limit is not None else "ALL", self.max_accounts)
 
         # Phase 1: Collect raw candidates
         candidates = self._collect_candidates()
@@ -122,12 +141,15 @@ class AccountScanner:
         # Phase 2: Enrich each candidate and filter
         accounts: List[AccountData] = []
         enriched_with_usage = 0
+        checked = 0
+        errors = 0
         for idx, user in enumerate(candidates, 1):
             user_id = user.get("id", "")
             email = str(user.get("email", "unknown"))[:40]
             t0 = time.time()
             try:
                 acct = self._enrich_account(user)
+                checked += 1
                 if acct.has_usage:
                     accounts.append(acct)
                     enriched_with_usage += 1
@@ -141,6 +163,7 @@ class AccountScanner:
                 else:
                     logger.debug("[%d/%d] ✗ %s — no assets, skipping", idx, len(candidates), email)
             except Exception as exc:
+                errors += 1
                 logger.warning("[%d/%d] Error enriching %s: %s", idx, len(candidates), email, exc)
                 continue
 
@@ -148,9 +171,17 @@ class AccountScanner:
                 logger.info("Reached max_accounts (%d), stopping enrichment", self.max_accounts)
                 break
 
+        self.scan_stats = {
+            "candidates_collected": len(candidates),
+            "accounts_checked": checked,
+            "accounts_with_usage": len(accounts),
+            "errors": errors,
+            "collect_limit": self.collect_limit,
+            "max_accounts": self.max_accounts,
+        }
         self.save_cache(accounts)
-        logger.info("Scan complete — %d account(s) with usage out of %d candidates, cached",
-                     len(accounts), len(candidates))
+        logger.info("Scan complete — %d account(s) with usage out of %d checked / %d candidates, %d errors, cached",
+                     len(accounts), checked, len(candidates), errors)
         return accounts
 
     def scan_from_cache(self) -> List[AccountData]:
@@ -202,8 +233,11 @@ class AccountScanner:
             )
 
             if not isinstance(result, dict):
-                logger.warning("Unexpected response type: %s", type(result))
-                break
+                preview = str(result).replace("\n", " ")[:500]
+                raise RuntimeError(
+                    f"Unexpected listPrivateUsers response type: {type(result).__name__}; "
+                    f"preview={preview!r}"
+                )
 
             data = result.get("data", [])
             if not data:
@@ -219,7 +253,7 @@ class AccountScanner:
                         page, len(data), page_candidates, len(candidates))
 
             # Stop if we have enough candidates
-            if len(candidates) >= self.collect_limit:
+            if self.collect_limit is not None and len(candidates) >= self.collect_limit:
                 logger.info("Reached collect_limit (%d), stopping", self.collect_limit)
                 break
 
@@ -233,7 +267,7 @@ class AccountScanner:
 
             page += 1
 
-        return candidates[:self.collect_limit]
+        return candidates if self.collect_limit is None else candidates[:self.collect_limit]
 
     @staticmethod
     def _is_collectible(user: Dict[str, Any]) -> bool:
@@ -265,6 +299,8 @@ class AccountScanner:
             "listPrivatePhoneNumbers",
             {"filter_user_id": user_id, "page_size": 100},
         )
+        messaging_profiles = self._safe_mcp_list(mcp, "listPrivateMessagingProfiles", user_id)
+        verify_profiles = self._safe_mcp_list(mcp, "listPrivateVerifyProfiles", user_id)
         cdr = self._fetch_cdr_sample(user_id)
 
         conn_data = connections.get("data", []) if isinstance(connections, dict) else []
@@ -289,8 +325,22 @@ class AccountScanner:
             connections=conn_data,
             phone_numbers=num_data,
             cdr_summary=cdr,
+            messaging_profiles=messaging_profiles,
+            verify_profiles=verify_profiles,
+            support_complaints_by_product={},
             raw_user=user,
         )
+
+    @staticmethod
+    def _safe_mcp_list(mcp: MCPClient, tool_name: str, user_id: str) -> List[Dict[str, Any]]:
+        """Best-effort optional MCP list call for adjacent product assets."""
+        try:
+            result = mcp.call_tool(tool_name, {"filter_user_id": user_id, "page_size": 100})
+            if isinstance(result, dict) and isinstance(result.get("data"), list):
+                return result["data"]
+        except Exception as exc:
+            logger.debug("Optional MCP tool %s unavailable for %s: %s", tool_name, user_id, exc)
+        return []
 
     def _fetch_cdr_sample(self, user_id: str) -> Dict[str, Any]:
         payload = {
@@ -330,7 +380,7 @@ def main() -> None:
             print(f"Usage: {sys.argv[0]} [max_accounts]", file=sys.stderr)
             sys.exit(1)
 
-    scanner = AccountScanner(max_accounts=max_accounts)
+    scanner = AccountScanner(max_accounts=max_accounts, collect_limit=None if max_accounts is None else max_accounts * 5)
     try:
         accounts = scanner.scan_all()
         print(f"\n{'='*70}")

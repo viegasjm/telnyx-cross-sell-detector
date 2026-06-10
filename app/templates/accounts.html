@@ -51,8 +51,8 @@
             <th>Account</th>
             <th>User ID</th>
             <th>Connections</th>
-            <th>Voice CDR</th>
-            <th>CC CDR</th>
+            <th>Industry</th>
+            <th>Fit Hints</th>
             <th>Products</th>
             <th>Score</th>
             <th>Tier</th>
@@ -60,12 +60,16 @@
         </thead>
         <tbody>
         {% for acct in accounts %}
-          <tr data-tier="{{ acct.opportunity_tier }}" data-name="{{ acct.business_name | lower }} {{ acct.email | lower }}">
+          <tr data-tier="{{ acct.opportunity_tier }}" data-name="{{ acct.business_name | lower }} {{ acct.email | lower }} {{ acct.industry | lower }} {{ acct.product_fit_hints | join(' ') | lower }}">
             <td><a href="/account/{{ acct.user_id }}">{{ acct.business_name }}</a></td>
             <td class="mono" style="font-size:12px">{{ acct.user_id[:12] }}…</td>
             <td class="mono">{{ acct.connections_count }}</td>
-            <td class="mono">{{ acct.cdr_voice_30d }}</td>
-            <td class="mono">{{ acct.cdr_callcontrol_30d }}</td>
+            <td><span class="product-badge">{{ acct.industry }}</span></td>
+            <td style="max-width:260px">
+              {% for h in acct.product_fit_hints[:3] %}
+              <span class="product-badge" style="margin:1px;background:rgba(0,227,170,0.12);color:var(--brand)">{{ h }}</span>
+              {% endfor %}
+            </td>
             <td>
               {% for p in acct.products %}
               <span class="product-badge" style="margin:1px">{{ p }}</span>

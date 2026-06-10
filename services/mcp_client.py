@@ -62,7 +62,7 @@ class MCPClient:
         return resp.get("result", {}).get("tools", [])
 
     def call_tool(self, tool_name: str, arguments: Dict[str, Any] = None) -> Any:
-        """Call a tool on the MCP server and return the result."""
+        """Call a tool on the MCP server and return the parsed result."""
         args = arguments or {}
         resp = self._send_request(
             "tools/call",
@@ -74,35 +74,70 @@ class MCPClient:
         result = resp.get("result", {})
         content = result.get("content", [])
 
-        # MCP returns content as a list of items. Try to extract text/JSON.
+        # MCP returns content as a list of items. Extract the first text payload
+        # and normalize it. The private-users server has returned all of these
+        # shapes in practice:
+        #   API Response (Status: 200):\n{"data": [...], "meta": {...}}
+        #   API Response (Status: 200):\n"{\"data\": [...]}"   # double encoded
+        #   ```json\n{"data": [...]}\n```
         if isinstance(content, list) and len(content) >= 1:
             for item in content:
-                if item.get("type") == "text":
-                    text = item.get("text", "")
-                    # Strip the "API Response (Status: NNN):\n" prefix that
-                    # the private-users MCP server prepends to every response.
-                    prefix = "API Response (Status: "
-                    if text.startswith(prefix):
-                        nl = text.find("\n")
-                        if nl >= 0:
-                            text = text[nl + 1:]
-
-                    # Try to parse as JSON
-                    try:
-                        return json.loads(text)
-                    except (json.JSONDecodeError, ValueError):
-                        # Maybe the JSON is wrapped in markdown code block
-                        if "```json" in text:
-                            start = text.find("```json") + 7
-                            end = text.find("```", start)
-                            if end > start:
-                                try:
-                                    return json.loads(text[start:end])
-                                except (json.JSONDecodeError, ValueError):
-                                    pass
-                        return text
+                if isinstance(item, dict) and item.get("type") == "text":
+                    return self._parse_tool_text(item.get("text", ""))
 
         return content
+
+    @staticmethod
+    def _parse_tool_text(text: str) -> Any:
+        """Parse a private-users MCP text payload into JSON when possible."""
+        if not isinstance(text, str):
+            return text
+
+        # Strip the "API Response (Status: NNN):\n" prefix that the
+        # private-users MCP server prepends to responses.
+        prefix = "API Response (Status: "
+        if text.startswith(prefix):
+            nl = text.find("\n")
+            if nl >= 0:
+                text = text[nl + 1:]
+
+        text = text.strip()
+
+        # Maybe the JSON is wrapped in a markdown code block.
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if lines and lines[0].startswith("```"):
+                lines = lines[1:]
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        # Parse repeatedly to handle double-encoded JSON strings.
+        parsed: Any = text
+        for _ in range(3):
+            if not isinstance(parsed, str):
+                return parsed
+            candidate = parsed.strip()
+            if not candidate:
+                return candidate
+            try:
+                parsed = json.loads(candidate)
+            except (json.JSONDecodeError, ValueError):
+                # Last resort: extract the first object/array embedded in text.
+                starts = [idx for idx in (candidate.find("{"), candidate.find("[")) if idx >= 0]
+                if starts:
+                    start = min(starts)
+                    end_obj = candidate.rfind("}")
+                    end_arr = candidate.rfind("]")
+                    end = max(end_obj, end_arr)
+                    if end > start:
+                        try:
+                            parsed = json.loads(candidate[start : end + 1])
+                            continue
+                        except (json.JSONDecodeError, ValueError):
+                            pass
+                return parsed
+        return parsed
 
     # -- Transport layer ------------------------------------------------------
 
